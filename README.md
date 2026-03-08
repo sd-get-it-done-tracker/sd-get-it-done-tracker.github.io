@@ -2,9 +2,9 @@
 
 ## Team
 
-**Team name:** Solo Dolo
+**Team name:** Hole Patrol
 
-**Team members:** Jared Wilber
+**Team members:** Jared Wilber, Madi Bianes, Kitu Komya
 
 ## Problem Statement
 
