@@ -44,6 +44,8 @@ export default function MapView({ points, allPoints, isFiltered, onBrush }: Prop
     data: PointData;
   } | null>(null);
   const [hasBrush, setHasBrush] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
 
   // Brush refs (not state — avoids stale closure issues)
   const modeRef = useRef<"idle" | "drawing" | "dragging">("idle");
@@ -249,6 +251,30 @@ export default function MapView({ points, allPoints, isFiltered, onBrush }: Prop
     }
   }, [onBrush]);
 
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim() || !mapRef.current) return;
+    setSearching(true);
+    try {
+      const q = encodeURIComponent(searchQuery.trim() + ", San Diego, CA");
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&viewbox=-117.4,33.1,-116.8,32.5&bounded=1`
+      );
+      const results = await res.json();
+      if (results.length > 0) {
+        const { lat, lon } = results[0];
+        mapRef.current.flyTo({
+          center: [parseFloat(lon), parseFloat(lat)],
+          zoom: 15,
+          duration: 1200,
+        });
+      }
+    } catch (e) {
+      console.error("Geocode failed:", e);
+    } finally {
+      setSearching(false);
+    }
+  }, [searchQuery]);
+
   // Update deck layers
   useEffect(() => {
     if (!mapReady || !overlayRef.current) return;
@@ -398,6 +424,54 @@ export default function MapView({ points, allPoints, isFiltered, onBrush }: Prop
             {mode}
           </button>
         ))}
+      </div>
+
+      {/* Address search */}
+      <div
+        style={{
+          position: "absolute",
+          top: 12,
+          right: 50,
+          zIndex: 10,
+          display: "flex",
+          gap: 4,
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Search address..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+          style={{
+            width: 200,
+            padding: "5px 10px",
+            fontSize: 11,
+            fontFamily: "'Space Mono', monospace",
+            border: "1px solid #ccc1b7",
+            borderRadius: 4,
+            background: "#fff1e5",
+            color: "#33302e",
+            outline: "none",
+          }}
+        />
+        <button
+          onClick={handleSearch}
+          disabled={searching}
+          style={{
+            padding: "5px 10px",
+            fontSize: 11,
+            fontFamily: "'Space Mono', monospace",
+            border: "1px solid #ccc1b7",
+            borderRadius: 4,
+            background: "#33302e",
+            color: "#fff1e5",
+            cursor: "pointer",
+            fontWeight: 700,
+          }}
+        >
+          {searching ? "..." : "Go"}
+        </button>
       </div>
 
       {/* Brush hint / clear */}
